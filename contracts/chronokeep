@@ -1,0 +1,366 @@
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, CheckSquare, Gift, CalendarDays, Plus, X, Edit3, Trash2, Bell } from 'lucide-react';
+
+const ChronoKeep = () => {
+  const [activeModule, setActiveModule] = useState('dashboard');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Sample data - in a real app, this would come from a database
+  const [events, setEvents] = useState([
+    { id: 1, title: 'Team Meeting', date: '2025-06-22', time: '10:00', type: 'work' },
+    { id: 2, title: 'Doctor Appointment', date: '2025-06-25', time: '14:30', type: 'personal' }
+  ]);
+
+  const [todos, setTodos] = useState([
+    { id: 1, title: 'Complete project proposal', completed: false, priority: 'high', dueDate: '2025-06-21' },
+    { id: 2, title: 'Buy groceries', completed: false, priority: 'medium', dueDate: '2025-06-20' },
+    { id: 3, title: 'Call mom', completed: true, priority: 'low', dueDate: '2025-06-19' }
+  ]);
+
+  const [birthdays, setBirthdays] = useState([
+    { id: 1, name: 'John Doe', date: '06-23', age: 28 },
+    { id: 2, name: 'Sarah Smith', date: '07-15', age: 25 }
+  ]);
+
+  const [schedules, setSchedules] = useState([
+    { id: 1, title: 'Morning Workout', time: '07:00', days: ['Mon', 'Wed', 'Fri'], active: true },
+    { id: 2, title: 'Weekly Review', time: '17:00', days: ['Fri'], active: true }
+  ]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const modules = [
+    { id: 'dashboard', name: 'Dashboard', icon: CalendarDays, color: 'bg-purple-500' },
+    { id: 'events', name: 'Events', icon: Calendar, color: 'bg-blue-500' },
+    { id: 'todos', name: 'To-Do List', icon: CheckSquare, color: 'bg-green-500' },
+    { id: 'birthdays', name: 'Birthdays', icon: Gift, color: 'bg-pink-500' },
+    { id: 'schedule', name: 'Schedule', icon: Clock, color: 'bg-orange-500' }
+  ];
+
+  const toggleTodo = (id) => {
+    setTodos(todos.map(todo => 
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ));
+  };
+
+  const getPriorityColor = (priority) => {
+    switch(priority) {
+      case 'high': return 'text-red-500 bg-red-50';
+      case 'medium': return 'text-yellow-500 bg-yellow-50';
+      case 'low': return 'text-green-500 bg-green-50';
+      default: return 'text-gray-500 bg-gray-50';
+    }
+  };
+
+  const getUpcomingItems = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const upcoming = [];
+    
+    events.forEach(event => {
+      if (event.date >= today) {
+        upcoming.push({ ...event, module: 'Events', color: 'bg-blue-100 text-blue-800' });
+      }
+    });
+    
+    todos.filter(todo => !todo.completed && todo.dueDate >= today).forEach(todo => {
+      upcoming.push({ ...todo, module: 'To-Do', color: 'bg-green-100 text-green-800' });
+    });
+    
+    return upcoming.slice(0, 5);
+  };
+
+  const renderDashboard = () => (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-6 text-white">
+        <h2 className="text-2xl font-bold mb-2">Good {currentTime.getHours() < 12 ? 'Morning' : currentTime.getHours() < 18 ? 'Afternoon' : 'Evening'}!</h2>
+        <p className="text-purple-100">Today is {currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <div className="text-3xl font-mono mt-2">{currentTime.toLocaleTimeString()}</div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {modules.slice(1).map(module => {
+          let count = 0;
+          switch(module.id) {
+            case 'events': count = events.length; break;
+            case 'todos': count = todos.filter(t => !t.completed).length; break;
+            case 'birthdays': count = birthdays.length; break;
+            case 'schedule': count = schedules.filter(s => s.active).length; break;
+          }
+          
+          return (
+            <div key={module.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveModule(module.id)}>
+              <div className={`${module.color} w-12 h-12 rounded-lg flex items-center justify-center mb-3`}>
+                <module.icon className="text-white" size={24} />
+              </div>
+              <h3 className="font-semibold text-gray-800">{module.name}</h3>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{count}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Bell size={20} className="text-purple-500" />
+          Upcoming Items
+        </h3>
+        <div className="space-y-3">
+          {getUpcomingItems().map((item, index) => (
+            <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+              <div>
+                <p className="font-medium text-gray-800">{item.title}</p>
+                <p className="text-sm text-gray-500">{item.date || item.dueDate} {item.time && `at ${item.time}`}</p>
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.color}`}>
+                {item.module}
+              </span>
+            </div>
+          ))}
+          {getUpcomingItems().length === 0 && (
+            <p className="text-gray-500 text-center py-4">No upcoming items</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderEvents = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">Events</h2>
+        <button className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-600 transition-colors">
+          <Plus size={18} />
+          Add Event
+        </button>
+      </div>
+      
+      <div className="grid gap-4">
+        {events.map(event => (
+          <div key={event.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-semibold text-gray-800">{event.title}</h3>
+                <p className="text-gray-600 mt-1">{event.date} at {event.time}</p>
+                <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs font-medium ${
+                  event.type === 'work' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                }`}>
+                  {event.type}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button className="text-gray-400 hover:text-blue-500 transition-colors">
+                  <Edit3 size={16} />
+                </button>
+                <button className="text-gray-400 hover:text-red-500 transition-colors">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderTodos = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">To-Do List</h2>
+        <button className="bg-green-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-600 transition-colors">
+          <Plus size={18} />
+          Add Task
+        </button>
+      </div>
+      
+      <div className="space-y-3">
+        {todos.map(todo => (
+          <div key={todo.id} className={`bg-white rounded-xl p-4 shadow-sm border border-gray-100 ${todo.completed ? 'opacity-60' : ''}`}>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={todo.completed}
+                onChange={() => toggleTodo(todo.id)}
+                className="w-5 h-5 text-green-500 rounded focus:ring-green-500"
+              />
+              <div className="flex-1">
+                <h3 className={`font-medium ${todo.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                  {todo.title}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">Due: {todo.dueDate}</p>
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(todo.priority)}`}>
+                {todo.priority}
+              </span>
+              <div className="flex gap-2">
+                <button className="text-gray-400 hover:text-blue-500 transition-colors">
+                  <Edit3 size={16} />
+                </button>
+                <button className="text-gray-400 hover:text-red-500 transition-colors">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderBirthdays = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">Birthdays</h2>
+        <button className="bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-pink-600 transition-colors">
+          <Plus size={18} />
+          Add Birthday
+        </button>
+      </div>
+      
+      <div className="grid gap-4">
+        {birthdays.map(birthday => (
+          <div key={birthday.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center">
+                  <Gift className="text-pink-500" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">{birthday.name}</h3>
+                  <p className="text-gray-600">{birthday.date} • Turning {birthday.age + 1}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button className="text-gray-400 hover:text-blue-500 transition-colors">
+                  <Edit3 size={16} />
+                </button>
+                <button className="text-gray-400 hover:text-red-500 transition-colors">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderSchedule = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">Schedule</h2>
+        <button className="bg-orange-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-600 transition-colors">
+          <Plus size={18} />
+          Add Schedule
+        </button>
+      </div>
+      
+      <div className="space-y-4">
+        {schedules.map(schedule => (
+          <div key={schedule.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-semibold text-gray-800">{schedule.title}</h3>
+                <p className="text-gray-600 mt-1">Every {schedule.days.join(', ')} at {schedule.time}</p>
+                <div className="flex gap-2 mt-2">
+                  {schedule.days.map(day => (
+                    <span key={day} className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full font-medium">
+                      {day}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={schedule.active}
+                    className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
+                    readOnly
+                  />
+                  <span className="ml-2 text-sm text-gray-600">Active</span>
+                </label>
+                <div className="flex gap-2 ml-4">
+                  <button className="text-gray-400 hover:text-blue-500 transition-colors">
+                    <Edit3 size={16} />
+                  </button>
+                  <button className="text-gray-400 hover:text-red-500 transition-colors">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderContent = () => {
+    switch(activeModule) {
+      case 'dashboard': return renderDashboard();
+      case 'events': return renderEvents();
+      case 'todos': return renderTodos();
+      case 'birthdays': return renderBirthdays();
+      case 'schedule': return renderSchedule();
+      default: return renderDashboard();
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
+                <CalendarDays className="text-white" size={20} />
+              </div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                ChronoKeep
+              </h1>
+            </div>
+            <div className="text-sm text-gray-500">
+              {currentTime.toLocaleDateString()}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white shadow-sm min-h-screen">
+          <nav className="p-4 space-y-2">
+            {modules.map(module => (
+              <button
+                key={module.id}
+                onClick={() => setActiveModule(module.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
+                  activeModule === module.id
+                    ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <module.icon size={20} />
+                <span className="font-medium">{module.name}</span>
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-6">
+          <div className="max-w-6xl mx-auto">
+            {renderContent()}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default ChronoKeep;
